@@ -1,12 +1,3 @@
-"""
-Práctica 10 – Estrategias para la construcción de algoritmos I
-Módulo  : Fuerza bruta
-
-Instrucciones
-    Implementa las funciones marcadas con TODO.
-    Ejecuta el archivo directamente para verificar tu avance.
-"""
-
 import itertools
 import string
 import time
@@ -14,8 +5,8 @@ import time
 # ---------------------------------------------------------------------------
 # Alfabetos predefinidos
 # ---------------------------------------------------------------------------
-DIGITOS    = string.digits                      # '0123456789'
-MINUSCULAS = string.ascii_lowercase             # 'abcdefghijklmnopqrstuvwxyz'
+DIGITOS    = string.digits                  # '0123456789'
+MINUSCULAS = string.ascii_lowercase         # 'abcdefghijklmnopqrstuvwxyz'
 ALNUM      = string.ascii_letters + string.digits
 
 
@@ -33,7 +24,8 @@ def generar_candidatos(alfabeto: str, longitud: int):
         "".join(tupla) convierte una tupla en cadena.
     """
     # TODO: implementa con itertools.product y yield o return del iterador
-    pass
+    for tupla in itertools.product(alfabeto, repeat=longitud):
+        yield "".join(tupla)
 
 
 def buscar_cadena_objetivo(objetivo: str, alfabeto: str,
@@ -51,9 +43,12 @@ def buscar_cadena_objetivo(objetivo: str, alfabeto: str,
     for longitud in range(min_len, len(objetivo) + 1):
         for candidato in generar_candidatos(alfabeto, longitud):
             # TODO: incrementa intentos
+            intentos += 1
             # TODO: si candidato == objetivo, calcula el tiempo y retorna
-            #       (True, intentos, tiempo)
-            pass
+            #        (True, intentos, tiempo)
+            if candidato == objetivo:
+                tiempo = time.perf_counter() - inicio
+                return (True, intentos, tiempo)
 
     tiempo = time.perf_counter() - inicio
     return (False, intentos, tiempo)
@@ -74,7 +69,7 @@ def combinar_teoricas(alfabeto: str, min_len: int, max_len: int) -> int:
         len(alfabeto) da |Σ|.
     """
     # TODO: implementa la fórmula
-    pass
+    return sum(len(alfabeto)**k for k in range(min_len, max_len + 1))
 
 
 # ---------------------------------------------------------------------------
@@ -103,10 +98,15 @@ def buscar_con_poda(objetivo: str, alfabeto: str,
             candidato = "".join(partes)
 
             # TODO: verifica los prefijos; si alguno no está en
-            #       prefijos_validos, usa 'continue' para saltar.
+            #        prefijos_validos, usa 'continue' para saltar.
+            if any(candidato[:k] not in prefijos_validos for k in range(1, len(candidato))):
+                continue
 
             # TODO: incrementa intentos y compara con objetivo.
-            pass
+            intentos += 1
+            if candidato == objetivo:
+                tiempo = time.perf_counter() - inicio
+                return (True, intentos, tiempo)
 
     tiempo = time.perf_counter() - inicio
     return (False, intentos, tiempo)
@@ -118,18 +118,27 @@ if __name__ == "__main__":
     print("=== Búsqueda por fuerza bruta ===")
     encontrada, intentos, t = buscar_cadena_objetivo(objetivo, MINUSCULAS)
     if encontrada:
-        print(f"  Objetivo : '{objetivo}'")
-        print(f"  Intentos : {intentos}")
-        print(f"  Tiempo   : {t:.4f} s")
-        print(f"  Tasa     : {intentos / t:.0f} candidatos/s")
+        print(f"   Objetivo : '{objetivo}'")
+        print(f"   Intentos : {intentos}")
+        print(f"   Tiempo   : {t:.4f} s")
+        print(f"   Tasa     : {intentos / t:.0f} candidatos/s")
     else:
-        print("  generar_candidatos aún no implementada (o target no encontrado)")
+        print("   generar_candidatos aún no implementada (o target no encontrado)")
 
     print("\n=== Combinaciones teóricas ===")
     for max_len in [3, 4]:
         n = combinar_teoricas(DIGITOS, 1, max_len)
         if n is not None:
-            print(f"  Dígitos hasta longitud {max_len}: {n:,} candidatos")
+            print(f"   Dígitos hasta longitud {max_len}: {n:,} candidatos")
         else:
-            print("  combinar_teoricas aún no implementada")
+            print("   combinar_teoricas aún no implementada")
         break
+
+''En generar_candidatos, se usa itertools.product para crear todas las combinaciones posibles del alfabeto.
+Con yield y "".join, la función entrega las palabras una por una en lugar de todas a la vez, lo que evita que la computadora se quede sin memoria.
+En buscar_cadena_objetivo, se añadió un contador que sube con cada palabra creada y un "si" (if) que compara el candidato con la meta. 
+Cuando coinciden, el programa se detiene, calcula el tiempo y entrega el resultado con el número total de intentos.
+En combinar_teoricas, se programó la fórmula matemática de potencias según el tamaño del alfabeto.
+Esto permite calcular exactamente cuántas combinaciones existen en total antes de empezar a buscar, ayudando a predecir qué tan difícil será el reto.
+En buscar_con_poda, se incluyó un filtro que revisa si el inicio de cada palabra es válido. Si el inicio no sirve, el programa usa continue para 
+saltarse esa opción y todas sus variaciones, ahorrando tiempo al no explorar caminos que ya se saben incorrectos.''
