@@ -1,12 +1,4 @@
-"""
-Práctica 10 – Estrategias para la construcción de algoritmos I
-Módulo  : Algoritmo ávido (greedy) – Cambio de monedas
-
-Instrucciones
-    Implementa las funciones marcadas con TODO.
-    Ejecuta el archivo directamente para verificar tu avance.
-"""
-
+import math
 
 # ---------------------------------------------------------------------------
 # Problema A – Solución greedy
@@ -16,25 +8,26 @@ def cambio_greedy(monto: int, monedas: list) -> tuple | None:
     """
     Resuelve el problema de cambio con la estrategia ávida:
     en cada paso usa la moneda de mayor valor que quepa.
-
-    Parámetros:
-        monto   – Cantidad (entero positivo) a devolver.
-        monedas – Lista de denominaciones disponibles (enteros positivos).
-
-    Retorna:
-        (usadas: list, total: int)  si hay solución exacta.
-        None                        si el monto no se puede completar.
-
-    Pistas:
-        sorted(monedas, reverse=True) ordena de mayor a menor.
-        cantidad = restante // moneda  (cuántas caben)
-        restante = restante % moneda   (lo que sobra)
     """
     # TODO: 1. Ordena las monedas de mayor a menor.
+    monedas_ord = sorted(monedas, reverse=True)
+    
+    usadas = []
+    restante = monto
+    
     # TODO: 2. Para cada denominación, toma tantas monedas como quepan.
+    for moneda in monedas_ord:
+        cantidad = restante // moneda
+        if cantidad > 0:
+            usadas.extend([moneda] * cantidad)
+            restante %= moneda
+            
     # TODO: 3. Si el residuo final es 0, retorna (lista_de_monedas_usadas, total).
+    if restante == 0:
+        return (usadas, len(usadas))
+        
     # TODO: 4. Si queda residuo, retorna None.
-    pass
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -45,22 +38,34 @@ def cambio_optimo_dp(monto: int, monedas: list) -> tuple | None:
     """
     Resuelve el problema de cambio de manera óptima usando
     programación dinámica (número mínimo de monedas).
-
-    Retorna:
-        (usadas: list, total: int)  con mínimo de monedas.
-        None                        si no hay solución exacta.
-
-    Pistas (bottom-up DP):
-        dp[i] = mínimo de monedas para devolver exactamente i.
-        Inicializa: dp[0] = 0,  dp[i] = float('inf') para i > 0.
-        Transición: dp[i] = min(dp[i], dp[i - m] + 1) para cada moneda m <= i.
-        Guarda padre[i] = m que produjo dp[i] para reconstruir la solución.
     """
     # TODO: crea la tabla dp y la tabla padre con longitud monto + 1.
+    dp = [float('inf')] * (monto + 1)
+    padre = [-1] * (monto + 1)
+    
+    dp[0] = 0 # Caso base: 0 monedas para monto 0
+    
     # TODO: llena la tabla recorriendo cada monto parcial de 1 a monto.
+    for i in range(1, monto + 1):
+        for m in monedas:
+            if m <= i:
+                if dp[i - m] + 1 < dp[i]:
+                    dp[i] = dp[i - m] + 1
+                    padre[i] = m
+                    
     # TODO: si dp[monto] es inf, retorna None.
+    if dp[monto] == float('inf'):
+        return None
+        
     # TODO: reconstruye la lista de monedas usando padre[].
-    pass
+    usadas = []
+    actual = monto
+    while actual > 0:
+        moneda = padre[actual]
+        usadas.append(moneda)
+        actual -= moneda
+        
+    return (usadas, len(usadas))
 
 
 # ---------------------------------------------------------------------------
@@ -70,16 +75,25 @@ def cambio_optimo_dp(monto: int, monedas: list) -> tuple | None:
 def comparar_estrategias(monto_max: int, monedas: list) -> dict:
     """
     Para cada monto de 1 a monto_max, compara greedy vs DP.
-
-    Retorna un diccionario con:
-        'montos_greedy_falla'     : lista de montos donde greedy devuelve None
-                                    pero DP sí tiene solución.
-        'montos_greedy_suboptimo' : lista de (monto, total_greedy, total_dp)
-                                    donde greedy usa más monedas que DP.
     """
+    res = {
+        'montos_greedy_falla': [],
+        'montos_greedy_suboptimo': []
+    }
+    
     # TODO: itera los montos, llama a cambio_greedy y cambio_optimo_dp.
-    # TODO: clasifica cada caso y acumula en las listas correspondientes.
-    pass
+    for m in range(1, monto_max + 1):
+        g = cambio_greedy(m, monedas)
+        d = cambio_optimo_dp(m, monedas)
+        
+        # TODO: clasifica cada caso y acumula en las listas correspondientes.
+        if d is not None:
+            if g is None:
+                res['montos_greedy_falla'].append(m)
+            elif g[1] > d[1]:
+                res['montos_greedy_suboptimo'].append((m, g[1], d[1]))
+                
+    return res
 
 
 # ---------------------------------------------------------------------------
@@ -111,3 +125,15 @@ if __name__ == "__main__":
             print(f"  Primeros 5 subóptimos: {sub[:5]}")
     else:
         print("  comparar_estrategias aún no implementada")
+
+
+
+''En cambio_greedy, se utilizó la lógica del "mejor paso inmediato". Primero ordenamos las monedas para 
+usar siempre la más grande posible; luego, usamos la división entera // para saber cuántas de esas monedas 
+caben en el monto y el operador residuo % para actualizar lo que falta por devolver. Si al final no sobra nada, la solución es válida.
+En cambio_optimo_dp, se aplicó una tabla de resultados. El algoritmo llena una lista (dp) con el número 
+mínimo de monedas para cada valor desde 1 hasta el monto final. La tabla padre es fundamental, ya que "anota" qué moneda
+usamos para llegar a ese mínimo, lo que nos permite reconstruir la lista de monedas al final caminando hacia atrás desde el monto total.
+En comparar_estrategias, se realizó un ciclo de prueba masiva. El código ejecuta ambos algoritmos para cada número y los compara. 
+Si el algoritmo de Programación Dinámica (DP) encuentra una solución pero el Greedy no, se registra como fallo. Si ambos encuentran 
+solución, pero el Greedy usa más monedas (es decir, el total de monedas de Greedy es mayor al de DP), se registra como subóptimo.''
